@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-
+import { useCart } from "./CartContext";
 const linkStyle = {
   color: "white",
   textDecoration: "none",
@@ -12,7 +12,12 @@ const linkStyle = {
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
-
+const {
+  cartCount,
+  cartTotal,
+  cartOpen,
+  setCartOpen,
+} = useCart();
   function closeMenu() {
     setMenuOpen(false);
   }
@@ -97,18 +102,42 @@ export default function Navbar() {
             Contact
           </Link>
 
-          <Link
-            href="/#order"
-            onClick={closeMenu}
-            style={{
-              ...linkStyle,
-              padding: "11px 18px",
-              borderRadius: "999px",
-              background: "#e9813f",
-            }}
-          >
-            Order Online
-          </Link>
+<button
+  type="button"
+  onClick={() => {
+    setCartOpen(!cartOpen);
+    closeMenu();
+  }}
+  aria-label="Open shopping cart"
+  style={{
+    border: "1px solid rgba(255,255,255,0.22)",
+    background: cartCount > 0 ? "#342318" : "transparent",
+    color: "white",
+    padding: "10px 15px",
+    borderRadius: "999px",
+    cursor: "pointer",
+    fontWeight: 700,
+    fontSize: "15px",
+    whiteSpace: "nowrap",
+  }}
+>
+  🛒 {cartCount}
+  {cartCount > 0 && ` · £${cartTotal.toFixed(2)}`}
+</button>
+
+<Link
+  href="/#order"
+  onClick={closeMenu}
+  style={{
+    ...linkStyle,
+    padding: "11px 18px",
+    borderRadius: "999px",
+    background: "#e9813f",
+  }}
+>
+  Order Online
+</Link>
+          
         </div>
       </div>
 
