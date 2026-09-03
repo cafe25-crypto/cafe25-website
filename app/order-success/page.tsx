@@ -1,15 +1,25 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { useCart } from "../../components/CartContext";
 
 export default function OrderSuccessPage() {
+  const searchParams = useSearchParams();
   const { clearCart } = useCart();
 
+  const payment = searchParams.get("payment");
+  const orderType = searchParams.get("type");
+
+  const isCash = payment === "cash";
+  const isDelivery = orderType === "delivery";
+
   useEffect(() => {
-    clearCart();
-  }, [clearCart]);
+  clearCart();
+  // Clear the basket only once when the confirmation page opens.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []);
 
   return (
     <main
@@ -64,7 +74,7 @@ export default function OrderSuccessPage() {
             fontSize: "13px",
           }}
         >
-          Payment successful
+          {isCash ? "Order placed" : "Payment successful"}
         </p>
 
         <h1
@@ -78,15 +88,18 @@ export default function OrderSuccessPage() {
 
         <p
           style={{
-            maxWidth: "500px",
+            maxWidth: "520px",
             margin: "0 auto",
             fontSize: "18px",
             lineHeight: 1.7,
             color: "#6f5b4d",
           }}
         >
-          Your payment has been received successfully. We are preparing your
-          Cafe 25 order.
+          {isCash
+            ? isDelivery
+              ? "Your order has been placed. Please pay the driver in cash when your order is delivered."
+              : "Your order has been placed. Please pay in cash when you collect your order."
+            : "Your payment has been received successfully and your Cafe 25 order has been placed."}
         </p>
 
         <div
@@ -103,11 +116,25 @@ export default function OrderSuccessPage() {
           </strong>
 
           <p style={{ margin: 0, lineHeight: 1.7, color: "#6f5b4d" }}>
-            Please keep your phone nearby in case we need to contact you about
-            your order. Collection and delivery orders will be prepared
-            according to the details provided during checkout.
+            {isDelivery
+              ? "We will prepare your order for delivery. Please keep your phone nearby in case Cafe 25 needs to contact you."
+              : "We will prepare your order for collection. Please keep your phone nearby in case Cafe 25 needs to contact you."}
           </p>
         </div>
+
+        {isCash && (
+          <div
+            style={{
+              marginBottom: "28px",
+              padding: "16px",
+              borderRadius: "14px",
+              background: "#f5f5f5",
+              fontWeight: 700,
+            }}
+          >
+            Payment due: {isDelivery ? "Cash on Delivery" : "Cash on Collection"}
+          </div>
+        )}
 
         <div
           style={{

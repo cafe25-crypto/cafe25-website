@@ -799,20 +799,22 @@ export default function MenuPage() {
   const [searchTerm, setSearchTerm] = useState("");
 
   const {
-    cart,
-    addToCart,
-    decreaseCartItem,
-    cartTotal,
-    cartOpen,
-    setCartOpen,
-    checkoutOpen,
-    setCheckoutOpen,
-  } = useCart();
+  cart,
+  addToCart,
+  decreaseCartItem,
+  clearCart,
+  cartTotal,
+  cartOpen,
+  setCartOpen,
+  checkoutOpen,
+  setCheckoutOpen,
+} = useCart();
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [collectionTime, setCollectionTime] = useState("ASAP");
   const [orderNote, setOrderNote] = useState("");
   const [orderType, setOrderType] = useState("collection");
+  const [paymentMethod, setPaymentMethod] = useState<"card" | "cash">("card");
   const [addressLine1, setAddressLine1] = useState("");
   const [addressLine2, setAddressLine2] = useState("");
   const [postcode, setPostcode] = useState("");
@@ -844,6 +846,53 @@ export default function MenuPage() {
     }
   }
 
+// CASH ORDER
+if (paymentMethod === "cash") {
+  try {
+    const response = await fetch("/api/order", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        items: cart,
+        orderType,
+        paymentMethod: "cash",
+        customerName: customerName.trim(),
+        customerPhone: customerPhone.trim(),
+        collectionTime,
+        addressLine1:
+          orderType === "delivery" ? addressLine1.trim() : "",
+        addressLine2:
+          orderType === "delivery" ? addressLine2.trim() : "",
+        postcode:
+          orderType === "delivery" ? postcode.trim() : "",
+        orderNote: orderNote.trim(),
+        total: cartTotal,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.error || "Unable to place cash order.");
+      return;
+    }
+
+    clearCart();
+    setCheckoutOpen(false);
+
+    window.location.href =
+      `/order-success?payment=cash&type=${orderType}&order=${data.orderNumber}`;
+
+    return;
+  } catch (error) {
+    console.error("Cash order error:", error);
+    alert("Unable to place cash order. Please try again.");
+    return;
+  }
+}
+  // CARD / STRIPE
   try {
     const response = await fetch("/api/checkout", {
       method: "POST",
@@ -1239,9 +1288,78 @@ export default function MenuPage() {
           cursor: "pointer",
         }}
       >
-        Continue to Payment
+    
+        {paymentMethod === "card"
+  ? "Continue to Payment"
+  : orderType === "delivery"
+  ? "Place Cash Delivery Order"
+  : "Place Cash Collection Order"}
       </button>
+{/* PAYMENT METHOD */}
+<div
+  style={{
+    marginTop: "18px",
+    marginBottom: "8px",
+  }}
+>
+  <div
+    style={{
+      fontWeight: 700,
+      fontSize: "17px",
+      marginBottom: "10px",
+    }}
+  >
+    Payment Method
+  </div>
 
+  <div
+    style={{
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: "10px",
+    }}
+  >
+    <button
+      type="button"
+      onClick={() => setPaymentMethod("card")}
+      style={{
+        padding: "14px 10px",
+        borderRadius: "10px",
+        border:
+          paymentMethod === "card"
+            ? "2px solid #f47c35"
+            : "1px solid #ddd",
+        background:
+          paymentMethod === "card" ? "#fff4ed" : "white",
+        fontWeight: 700,
+        cursor: "pointer",
+      }}
+    >
+      Pay Online
+    </button>
+
+    <button
+      type="button"
+      onClick={() => setPaymentMethod("cash")}
+      style={{
+        padding: "14px 10px",
+        borderRadius: "10px",
+        border:
+          paymentMethod === "cash"
+            ? "2px solid #f47c35"
+            : "1px solid #ddd",
+        background:
+          paymentMethod === "cash" ? "#fff4ed" : "white",
+        fontWeight: 700,
+        cursor: "pointer",
+      }}
+    >
+      {orderType === "delivery"
+        ? "Cash on Delivery"
+        : "Cash on Collection"}
+    </button>
+  </div>
+</div>
       <button
         onClick={() => setCheckoutOpen(false)}
         style={{
