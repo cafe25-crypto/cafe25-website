@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useCart } from "../../components/CartContext";
+function OrderSuccessContent() {
 
-export default function OrderSuccessPage() {
   const searchParams = useSearchParams();
   const { clearCart } = useCart();
 
@@ -174,5 +174,12 @@ export default function OrderSuccessPage() {
         </div>
       </div>
     </main>
+  );
+}
+export default function OrderSuccessPage() {
+  return (
+    <Suspense fallback={<div>Loading order confirmation...</div>}>
+      <OrderSuccessContent />
+    </Suspense>
   );
 }
