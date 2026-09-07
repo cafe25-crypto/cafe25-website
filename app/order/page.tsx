@@ -27,14 +27,33 @@ type Order = {
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-
+const [password, setPassword] = useState("");
+const [loggedIn, setLoggedIn] = useState(false);
+const [loginError, setLoginError] = useState("");
+const [showPassword, setShowPassword] = useState(false);
   async function loadOrders() {
     try {
-      const response = await fetch("/api/order", {
-        cache: "no-store",
-      });
-
+     const response = await fetch("/api/order", {
+  cache: "no-store",
+  headers: {
+    "x-staff-password": password,
+  },
+});
       const data = await response.json();
+     if (response.status === 401) {
+  setLoginError("Incorrect staff password.");
+  setOrders([]);
+  return;
+}
+
+if (!response.ok) {
+  setLoginError("Unable to load orders. Please try again.");
+  setOrders([]);
+  return;
+}
+
+setLoginError("");
+setLoggedIn(true);
       setOrders(data.orders || []);
     } catch (error) {
       console.error("Unable to load orders:", error);
@@ -44,12 +63,101 @@ export default function OrdersPage() {
   }
 
   useEffect(() => {
-    loadOrders();
+  if (!loggedIn) return;
 
-    const timer = setInterval(loadOrders, 10000);
+  const timer = setInterval(loadOrders, 10000);
 
-    return () => clearInterval(timer);
-  }, []);
+  return () => clearInterval(timer);
+}, [loggedIn]);
+
+  if (!loggedIn) {
+  return (
+    <main
+      style={{
+        minHeight: "100vh",
+        background: "#fffaf0",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "20px",
+        fontFamily: "Arial, sans-serif",
+      }}
+    >
+      <div
+        style={{
+          background: "white",
+          padding: "40px",
+          borderRadius: "18px",
+          width: "100%",
+          maxWidth: "420px",
+          boxShadow: "0 8px 30px rgba(0,0,0,0.10)",
+        }}
+      >
+        <h1 style={{ marginTop: 0 }}>Cafe 25 Staff</h1>
+        <p style={{ marginBottom: "24px" }}>
+          Enter the staff password to view customer orders.
+        </p>
+
+       <input
+  type={showPassword ? "text" : "password"}
+  placeholder="Staff password"
+  value={password}
+  onChange={(e) => setPassword(e.target.value)}
+  onKeyDown={(e) => {
+    if (e.key === "Enter") loadOrders();
+  }}
+  style={{
+    width: "100%",
+    boxSizing: "border-box",
+    padding: "14px",
+    fontSize: "16px",
+    border: "1px solid #ccc",
+    borderRadius: "8px",
+    marginBottom: "8px",
+  }}
+/>
+
+<button
+  type="button"
+  onClick={() => setShowPassword(!showPassword)}
+  style={{
+    background: "transparent",
+    border: "none",
+    padding: "0 0 14px 0",
+    cursor: "pointer",
+    fontWeight: 600,
+    color: "#6b4a35",
+  }}
+>
+  {showPassword ? "Hide password" : "Show password"}
+</button>
+
+<button
+  onClick={loadOrders}
+  style={{
+    width: "100%",
+    padding: "14px",
+    background: "#342318",
+    color: "white",
+    border: "none",
+    borderRadius: "8px",
+    fontSize: "16px",
+    fontWeight: 700,
+    cursor: "pointer",
+  }}
+>
+  View Orders
+</button>
+
+        {loginError && (
+          <p style={{ color: "crimson", marginTop: "14px" }}>
+            {loginError}
+          </p>
+        )}
+      </div>
+    </main>
+  );
+}
 
   return (
     <main

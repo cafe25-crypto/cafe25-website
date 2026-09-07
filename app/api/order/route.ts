@@ -92,6 +92,25 @@ export async function POST(request: Request) {
 }
 
 export async function GET() {
+    const staffPassword = process.env.STAFF_ORDER_PASSWORD;
+
+  if (!staffPassword) {
+    return NextResponse.json(
+      { error: "Staff access is not configured." },
+      { status: 500 }
+    );
+  }
+
+  const headersList = await import("next/headers");
+  const headers = await headersList.headers();
+  const suppliedPassword = headers.get("x-staff-password");
+
+  if (suppliedPassword !== staffPassword) {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 }
+    );
+  }
   try {
     const store = getStore("cafe25-orders");
 
