@@ -139,3 +139,76 @@ export async function GET() {
     );
   }
 }
+export async function PATCH(request: Request) {
+  try {
+    const staffPassword = process.env.STAFF_ORDER_PASSWORD;
+    const suppliedPassword = request.headers.get("x-staff-password");
+
+    if (!staffPassword || suppliedPassword !== staffPassword) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const body = await request.json();
+    const { orderNumber, status } = body;
+
+    const allowedStatuses = [
+      "new",
+      "accepted",
+      "preparing",
+      "ready",
+      "out_for_delivery",
+      "completed",
+      "cancelled",
+    ];
+
+    if (!orderNumber || !status) {
+      return NextResponse.json(
+        { error: "Missing order number or status." },
+        { status: 400 }
+      );
+    }
+
+    if (!allowedStatuses.includes(status)) {
+      return NextResponse.json(
+        { error: "Invalid status." },
+        { status: 400 }
+      );
+    }
+
+    const store = getStore("cafe25-orders");
+
+    const order = await store.get(orderNumber, {
+      type: "json",
+    });
+
+    if (!order) {
+      return NextResponse.json(
+        { error: "Order not found." },
+        { status: 404 }
+      );
+    }
+
+    const updatedOrder = {
+      ...(order as Record<string, unknown>),
+      status,
+      updatedAt: new Date().toISOString(),
+    };
+
+    await store.setJSON(orderNumber, updatedOrder);
+
+    return NextResponse.json({
+      success: true,
+      order: updatedOrder,
+    });
+  } catch (error) {
+    console.error("Order status update error:", error);
+
+    return NextResponse.json(
+      { error: "Unable to update order status." },
+      { status: 500 }
+    );
+  }
+}
