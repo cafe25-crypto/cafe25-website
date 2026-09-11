@@ -212,3 +212,6 @@ export async function PATCH(request: Request) {
     );
   }
 }
+export async function OPTIONS() {
+  return NextResponse.json({ ok: true });
+}

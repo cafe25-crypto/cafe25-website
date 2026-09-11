@@ -7,6 +7,7 @@ import { useCart } from "../../components/CartContext";
 function OrderSuccessContent() {
 
   const searchParams = useSearchParams();
+  const orderNumber = searchParams.get("order");
   const { clearCart } = useCart();
 
   const payment = searchParams.get("payment");
@@ -145,32 +146,48 @@ function OrderSuccessContent() {
           }}
         >
           <Link
-            href="/"
-            style={{
-              textDecoration: "none",
-              padding: "14px 24px",
-              borderRadius: "999px",
-              background: "#342318",
-              color: "white",
-              fontWeight: 700,
-            }}
-          >
-            Back to Home
-          </Link>
+  href="/"
+  style={{
+    textDecoration: "none",
+    padding: "14px 24px",
+    borderRadius: "999px",
+    background: "#342318",
+    color: "white",
+    fontWeight: 700,
+  }}
+>
+  Back to Home
+</Link>
 
-          <Link
-            href="/menu"
-            style={{
-              textDecoration: "none",
-              padding: "14px 24px",
-              borderRadius: "999px",
-              border: "1px solid #d8b06a",
-              color: "#342318",
-              fontWeight: 700,
-            }}
-          >
-            Order Again
-          </Link>
+{orderNumber && (
+  <Link
+    href={`/track-order?order=${encodeURIComponent(orderNumber)}`}
+    style={{
+      textDecoration: "none",
+      padding: "14px 24px",
+      borderRadius: "999px",
+      background: "#b86200",
+      color: "white",
+      fontWeight: 700,
+    }}
+  >
+    Track My Order
+  </Link>
+)}
+
+<Link
+  href="/menu"
+  style={{
+    textDecoration: "none",
+    padding: "14px 24px",
+    borderRadius: "999px",
+    border: "1px solid #d8b06a",
+    color: "#342318",
+    fontWeight: 700,
+  }}
+>
+  Order Again
+</Link>
         </div>
       </div>
     </main>
