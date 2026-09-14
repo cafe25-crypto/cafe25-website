@@ -110,44 +110,47 @@ export default function OrdersPage() {
     }
   }
 
-  async function updateStatus(
-    orderNumber: string,
-    status: string
-  ) {
-    try {
-      setUpdatingOrder(orderNumber);
+ async function updateStatus(orderNumber: string, status: string) {
+  try {
+    const response = await fetch("/api/order", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "x-staff-password": password,
+      },
+      body: JSON.stringify({
+        orderNumber,
+        status,
+      }),
+    });
 
-      const response = await fetch("/api/order", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          "x-staff-password": password,
-        },
-        body: JSON.stringify({
-          orderNumber,
-          status,
-        }),
-      });
+    const data = await response.json();
 
-      if (response.status === 401) {
-        alert("Your staff session is no longer authorised.");
-        setLoggedIn(false);
-        return;
-      }
-
-      if (!response.ok) {
-        alert("Unable to update order status.");
-        return;
-      }
-
-      await loadOrders();
-    } catch (error) {
-      console.error("Status update failed:", error);
-      alert("Unable to update order status.");
-    } finally {
-      setUpdatingOrder("");
+    if (!response.ok) {
+      alert(data.error || "Unable to update order.");
+      return;
     }
+
+    const updatedOrder = data.order;
+
+    if (status === "completed" || status === "cancelled") {
+      setOrders((currentOrders) =>
+        currentOrders.filter(
+          (order) => order.orderNumber !== orderNumber
+        )
+      );
+    } else {
+      setOrders((currentOrders) =>
+        currentOrders.map((order) =>
+          order.orderNumber === orderNumber ? updatedOrder : order
+        )
+      );
+    }
+  } catch (error) {
+    console.error("Unable to update order:", error);
+    alert("Unable to update order. Please try again.");
   }
+}
 
   function playNewOrderSound() {
     try {
