@@ -19,6 +19,8 @@ type Order = {
   paymentMethod: string;
   collectionTime?: string;
   total: number;
+  estimatedReadyAt?: string | null;
+estimatedDeliveryAt?: string | null;
   items: OrderItem[];
 };
 
@@ -29,7 +31,7 @@ function TrackOrderContent() {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
+const [now, setNow] = useState(Date.now());
   async function loadOrder() {
     if (!orderNumber) {
       setError("Order number is missing.");
@@ -63,12 +65,19 @@ function TrackOrderContent() {
   }
 
   useEffect(() => {
-    loadOrder();
+  loadOrder();
 
-    const timer = setInterval(loadOrder, 10000);
+  const refreshTimer = setInterval(loadOrder, 10000);
 
-    return () => clearInterval(timer);
-  }, [orderNumber]);
+  const countdownTimer = setInterval(() => {
+    setNow(Date.now());
+  }, 10000);
+
+  return () => {
+    clearInterval(refreshTimer);
+    clearInterval(countdownTimer);
+  };
+}, [orderNumber]);
 
   if (loading) {
     return (
@@ -122,7 +131,23 @@ function TrackOrderContent() {
       : ["new", "accepted", "preparing", "ready", "completed"];
 
   const currentIndex = steps.indexOf(order.status);
+const readyMinutes = order.estimatedReadyAt
+  ? Math.max(
+      0,
+      Math.ceil(
+        (new Date(order.estimatedReadyAt).getTime() - now) / 60000
+      )
+    )
+  : null;
 
+const deliveryMinutes = order.estimatedDeliveryAt
+  ? Math.max(
+      0,
+      Math.ceil(
+        (new Date(order.estimatedDeliveryAt).getTime() - now) / 60000
+      )
+    )
+  : null;
   return (
     <main style={pageStyle}>
       <div style={{ ...cardStyle, maxWidth: "760px" }}>
@@ -175,7 +200,131 @@ function TrackOrderContent() {
               : "Collection order"}
           </p>
         </div>
+{order.status !== "cancelled" && (
+  <div
+    style={{
+      background: "#fff4e6",
+      border: "1px solid #f0c48b",
+      borderRadius: "14px",
+      padding: "18px",
+      marginBottom: "26px",
+      textAlign: "center",
+    }}
+  >
+    {order.status === "new" && (
+      <>
+        <div
+          style={{
+            fontSize: "20px",
+            fontWeight: 800,
+            color: "#342318",
+          }}
+        >
+          Order received
+        </div>
 
+        <div style={{ marginTop: "7px", color: "#6b4a35" }}>
+          Waiting for Cafe 25 to confirm your estimated time.
+        </div>
+      </>
+    )}
+
+    {(order.status === "accepted" ||
+      order.status === "preparing") && (
+      <>
+        <div
+          style={{
+            fontSize: "16px",
+            fontWeight: 700,
+            color: "#6b4a35",
+          }}
+        >
+          Estimated ready time
+        </div>
+
+        <div
+          style={{
+            marginTop: "6px",
+            fontSize: "26px",
+            fontWeight: 800,
+            color: "#342318",
+          }}
+        >
+          {readyMinutes !== null && readyMinutes > 0
+            ? `About ${readyMinutes} minute${
+                readyMinutes === 1 ? "" : "s"
+              }`
+            : "Very soon"}
+        </div>
+      </>
+    )}
+
+    {order.status === "ready" && (
+      <>
+        <div
+          style={{
+            fontSize: "24px",
+            fontWeight: 800,
+            color: "#342318",
+          }}
+        >
+          {order.orderType === "delivery"
+            ? "Ready for driver"
+            : "Ready for collection"}
+        </div>
+
+        <div style={{ marginTop: "7px", color: "#6b4a35" }}>
+          {order.orderType === "delivery"
+            ? "Your food is ready and waiting for the driver."
+            : "Your order is ready now. Please come to Cafe 25 to collect it."}
+        </div>
+      </>
+    )}
+
+    {order.status === "out_for_delivery" && (
+      <>
+        <div
+          style={{
+            fontSize: "20px",
+            fontWeight: 800,
+            color: "#342318",
+          }}
+        >
+          Your order is on the way
+        </div>
+
+        <div
+          style={{
+            marginTop: "6px",
+            fontSize: "26px",
+            fontWeight: 800,
+            color: "#342318",
+          }}
+        >
+          {deliveryMinutes !== null && deliveryMinutes > 0
+            ? `Estimated arrival in ${deliveryMinutes} minute${
+                deliveryMinutes === 1 ? "" : "s"
+              }`
+            : "Your driver should arrive very soon"}
+        </div>
+      </>
+    )}
+
+    {order.status === "completed" && (
+      <div
+        style={{
+          fontSize: "24px",
+          fontWeight: 800,
+          color: "#342318",
+        }}
+      >
+        {order.orderType === "delivery"
+          ? "Order delivered ✓"
+          : "Order collected ✓"}
+      </div>
+    )}
+  </div>
+)}
         {order.status === "cancelled" ? (
           <div
             style={{

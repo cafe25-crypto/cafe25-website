@@ -34,8 +34,10 @@ export async function GET(request: Request) {
       orderType?: string;
       paymentMethod?: string;
       collectionTime?: string;
-      total?: number;
-      items?: {
+total?: number;
+estimatedReadyAt?: string | null;
+estimatedDeliveryAt?: string | null;
+items?: {
         name: string;
         price: number;
         quantity: number;
@@ -51,8 +53,10 @@ export async function GET(request: Request) {
         orderType: safeOrder.orderType,
         paymentMethod: safeOrder.paymentMethod,
         collectionTime: safeOrder.collectionTime,
-        total: safeOrder.total,
-        items: safeOrder.items || [],
+total: safeOrder.total,
+estimatedReadyAt: safeOrder.estimatedReadyAt || null,
+estimatedDeliveryAt: safeOrder.estimatedDeliveryAt || null,
+items: safeOrder.items || [],
       },
     });
   } catch (error) {

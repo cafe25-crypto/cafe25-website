@@ -29,9 +29,12 @@ type Order = {
   addressLine2?: string;
   postcode?: string;
 
-  orderNote?: string;
+ orderNote?: string;
 
-  total: number;
+total: number;
+
+estimatedReadyAt?: string | null;
+estimatedDeliveryAt?: string | null;
 };
 
 export default function OrdersPage() {
@@ -46,7 +49,9 @@ export default function OrdersPage() {
 
   const [updatingOrder, setUpdatingOrder] = useState("");
   const [showCompleted, setShowCompleted] = useState(false);
-
+const [etaMinutes, setEtaMinutes] = useState<
+  Record<string, number>
+>({});
   const previousOrderNumbers = useRef<string[]>([]);
   const firstLoad = useRef(true);
 
@@ -110,7 +115,11 @@ export default function OrdersPage() {
     }
   }
 
- async function updateStatus(orderNumber: string, status: string) {
+ async function updateStatus(
+  orderNumber: string,
+  status: string,
+  selectedEtaMinutes?: number
+) {
   try {
     const response = await fetch("/api/order", {
       method: "PATCH",
@@ -118,10 +127,11 @@ export default function OrdersPage() {
         "Content-Type": "application/json",
         "x-staff-password": password,
       },
-      body: JSON.stringify({
-        orderNumber,
-        status,
-      }),
+     body: JSON.stringify({
+  orderNumber,
+  status,
+  etaMinutes: selectedEtaMinutes,
+}),
     });
 
     const data = await response.json();
@@ -621,17 +631,47 @@ export default function OrdersPage() {
                   }}
                 >
                   {order.status === "new" && (
-                    <StatusButton
-                      label="Accept Order"
-                      disabled={busy}
-                      onClick={() =>
-                        updateStatus(
-                          order.orderNumber,
-                          "accepted"
-                        )
-                      }
-                    />
-                  )}
+  <>
+    <select
+      value={etaMinutes[order.orderNumber] ?? 20}
+      onChange={(e) =>
+        setEtaMinutes((current) => ({
+          ...current,
+          [order.orderNumber]: Number(e.target.value),
+        }))
+      }
+      disabled={busy}
+      style={{
+        padding: "12px 14px",
+        borderRadius: "8px",
+        border: "1px solid #b59b87",
+        background: "white",
+        color: "#342318",
+        fontWeight: 700,
+        fontSize: "15px",
+        cursor: "pointer",
+      }}
+    >
+      <option value={10}>Ready in 10 min</option>
+      <option value={15}>Ready in 15 min</option>
+      <option value={20}>Ready in 20 min</option>
+      <option value={30}>Ready in 30 min</option>
+      <option value={45}>Ready in 45 min</option>
+    </select>
+
+    <StatusButton
+      label="Accept Order"
+      disabled={busy}
+      onClick={() =>
+        updateStatus(
+          order.orderNumber,
+          "accepted",
+          etaMinutes[order.orderNumber] ?? 20
+        )
+      }
+    />
+  </>
+)}
 
                   {order.status === "accepted" && (
                     <StatusButton
@@ -663,19 +703,49 @@ export default function OrdersPage() {
                     />
                   )}
 
-                  {order.status === "ready" &&
-                    isDelivery && (
-                      <StatusButton
-                        label="Out for Delivery"
-                        disabled={busy}
-                        onClick={() =>
-                          updateStatus(
-                            order.orderNumber,
-                            "out_for_delivery"
-                          )
-                        }
-                      />
-                    )}
+                  {order.status === "ready" && isDelivery && (
+  <>
+    <select
+      value={etaMinutes[order.orderNumber] ?? 15}
+      onChange={(e) =>
+        setEtaMinutes((current) => ({
+          ...current,
+          [order.orderNumber]: Number(e.target.value),
+        }))
+      }
+      disabled={busy}
+      style={{
+        padding: "12px 14px",
+        borderRadius: "8px",
+        border: "1px solid #b59b87",
+        background: "white",
+        color: "#342318",
+        fontWeight: 700,
+        fontSize: "15px",
+        cursor: "pointer",
+      }}
+    >
+      <option value={5}>Driver ETA 5 min</option>
+      <option value={10}>Driver ETA 10 min</option>
+      <option value={15}>Driver ETA 15 min</option>
+      <option value={20}>Driver ETA 20 min</option>
+      <option value={30}>Driver ETA 30 min</option>
+      <option value={45}>Driver ETA 45 min</option>
+    </select>
+
+    <StatusButton
+      label="Out for Delivery"
+      disabled={busy}
+      onClick={() =>
+        updateStatus(
+          order.orderNumber,
+          "out_for_delivery",
+          etaMinutes[order.orderNumber] ?? 15
+        )
+      }
+    />
+  </>
+)}
 
                   {order.status === "ready" &&
                     !isDelivery && (

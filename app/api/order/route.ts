@@ -26,6 +26,10 @@ function makeOrderNumber() {
   return `C25-${now}`;
 }
 
+function addMinutes(minutes: number) {
+  return new Date(Date.now() + minutes * 60_000).toISOString();
+}
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as OrderRequest;
@@ -69,6 +73,8 @@ export async function POST(request: Request) {
       status: "new",
       paymentStatus:
         body.paymentMethod === "cash" ? "payment_due" : "pending",
+      estimatedReadyAt: null,
+      estimatedDeliveryAt: null,
       ...body,
     };
 
@@ -91,8 +97,8 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET() {
-    const staffPassword = process.env.STAFF_ORDER_PASSWORD;
+export async function GET(request: Request) {
+  const staffPassword = process.env.STAFF_ORDER_PASSWORD;
 
   if (!staffPassword) {
     return NextResponse.json(
@@ -101,9 +107,7 @@ export async function GET() {
     );
   }
 
-  const headersList = await import("next/headers");
-  const headers = await headersList.headers();
-  const suppliedPassword = headers.get("x-staff-password");
+  const suppliedPassword = request.headers.get("x-staff-password");
 
   if (suppliedPassword !== staffPassword) {
     return NextResponse.json(
@@ -111,6 +115,7 @@ export async function GET() {
       { status: 401 }
     );
   }
+
   try {
     const store = getStore("cafe25-orders");
 
@@ -139,6 +144,7 @@ export async function GET() {
     );
   }
 }
+
 export async function PATCH(request: Request) {
   try {
     const staffPassword = process.env.STAFF_ORDER_PASSWORD;
@@ -153,6 +159,11 @@ export async function PATCH(request: Request) {
 
     const body = await request.json();
     const { orderNumber, status } = body;
+
+    const etaMinutes =
+      body.etaMinutes === undefined || body.etaMinutes === null
+        ? null
+        : Number(body.etaMinutes);
 
     const allowedStatuses = [
       "new",
@@ -178,6 +189,18 @@ export async function PATCH(request: Request) {
       );
     }
 
+    if (
+      etaMinutes !== null &&
+      (!Number.isFinite(etaMinutes) ||
+        etaMinutes < 1 ||
+        etaMinutes > 180)
+    ) {
+      return NextResponse.json(
+        { error: "Invalid estimated time." },
+        { status: 400 }
+      );
+    }
+
     const store = getStore("cafe25-orders");
 
     const order = await store.get(orderNumber, {
@@ -191,11 +214,23 @@ export async function PATCH(request: Request) {
       );
     }
 
-    const updatedOrder = {
+    const updatedOrder: Record<string, unknown> = {
       ...(order as Record<string, unknown>),
       status,
       updatedAt: new Date().toISOString(),
     };
+
+    if (status === "accepted" && etaMinutes !== null) {
+      updatedOrder.estimatedReadyAt = addMinutes(etaMinutes);
+    }
+
+    if (
+      status === "out_for_delivery" &&
+      etaMinutes !== null
+    ) {
+      updatedOrder.estimatedDeliveryAt =
+        addMinutes(etaMinutes);
+    }
 
     await store.setJSON(orderNumber, updatedOrder);
 
@@ -212,6 +247,7 @@ export async function PATCH(request: Request) {
     );
   }
 }
+
 export async function OPTIONS() {
   return NextResponse.json({ ok: true });
 }
